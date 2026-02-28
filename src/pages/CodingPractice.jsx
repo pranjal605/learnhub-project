@@ -1,17 +1,14 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
+import { executeCode } from '../utils/jdoodle';
+import './CodingPractice.css';
 import {
     Play,
-    Send,
     Terminal,
     Info,
     ArrowLeft,
-    Database,
     Cpu,
-    Network,
-    Code2,
     CheckCircle2,
     XCircle,
     RotateCcw
@@ -25,12 +22,8 @@ const problemData = {
         examples: [{ input: 'nums = [2,7,11,15], target = 9', output: '[0,1]', explanation: '2 + 7 = 9.' }],
         constraints: ['2 <= nums.length <= 104'],
         starterCode: {
-            javascript: `// Write your code here
-// Function must return an array of two integers
-function twoSum(nums, target) {
-    
-}`,
-            python: 'def twoSum(nums, target):\n    # Write code here',
+            javascript: `// Write your code here\nfunction twoSum(nums, target) {\n    \n}`,
+            python: 'def twoSum(nums, target):\n    # Write code here\n    pass',
             cpp: 'class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        \n    }\n};',
             java: 'class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        \n    }\n}'
         },
@@ -39,14 +32,6 @@ function twoSum(nums, target) {
             { params: [[3, 2, 4], 6], expected: [1, 2] },
             { params: [[3, 3], 6], expected: [0, 1] }
         ]
-    },
-    'sql': {
-        title: 'Employee Salaries',
-        difficulty: 'Medium',
-        description: 'Write a SQL query to find all employees who earn more than their managers.',
-        examples: [{ input: 'Employees (id, name, salary, managerId)', output: 'Name', explanation: 'Joe earns 70k, manager Sam earns 60k.' }],
-        constraints: ['Return Name column'],
-        starterCode: { sql: '-- Write your SQL query here\nSELECT name FROM Employee ...' }
     }
 };
 
@@ -55,45 +40,31 @@ function CodingPractice() {
     const isDBMS = subjectId === 'dbms';
     const isTheory = ['os', 'cn', 'software-eng'].includes(subjectId);
 
-    // Dynamic Problem Generator for topics without hardcoded data
     const getProblem = () => {
         if (problemData[topicId]) return problemData[topicId];
-        if (isDBMS) return problemData['sql'];
-
-        // Fallback generic problem
-        const subjectName = subjectId ? subjectId.toUpperCase() : 'Coding';
         const topicName = topicId ? topicId.charAt(0).toUpperCase() + topicId.slice(1) : 'Practice';
         return {
             title: `${topicName} Implementation`,
             difficulty: 'Medium',
-            description: `Implement the core logic for ${topicName}. This is a practice environment for ${subjectName} concepts.`,
+            description: `Implement the core logic for ${topicName}.`,
             examples: [{ input: 'Standard Input', output: 'Expected Result', explanation: 'Demonstrate functional correctness.' }],
-            constraints: ['Optimize for time complexity', 'Handle edge cases'],
+            constraints: ['Optimize for complexity', 'Handle edge cases'],
             starterCode: {
-                javascript: `// Implement ${topicName} logic
-function solve(input) {
-    return input;
-}`,
-                python: `def solve(input):\n    # Implement ${topicName} logic\n    return input`,
-                cpp: `// Implement ${topicName} logic\nclass Solution {\npublic:\n    void solve() {\n        \n    }\n};`,
-                java: `// Implement ${topicName} logic\nclass Solution {\n    public void solve() {\n        \n    }\n}`
-            },
-            testCases: [
-                { params: [1], expected: 1 },
-                { params: [2], expected: 2 }
-            ]
+                javascript: `function solve(input) {\n    return input;\n}`,
+                python: `def solve(input):\n    return input`,
+                cpp: `class Solution {\npublic:\n    void solve() {}\n};`,
+                java: `class Solution {\n    public void solve() {}\n}`
+            }
         };
     };
 
     const problem = getProblem();
-
-    // Set initial language based on subject
     const initialLang = isDBMS ? 'sql' : 'javascript';
     const [language, setLanguage] = useState(initialLang);
     const [code, setCode] = useState(problem.starterCode[language] || '');
     const [output, setOutput] = useState([]);
     const [isRunning, setIsRunning] = useState(false);
-    const [status, setStatus] = useState(null); // 'passed' | 'failed' | null
+    const [status, setStatus] = useState(null);
 
     useEffect(() => {
         if (problem.starterCode[language]) {
@@ -101,141 +72,107 @@ function solve(input) {
         }
     }, [language, problem]);
 
-    const executeJavaScript = (userCode) => {
+    const handleRun = async () => {
+        setIsRunning(true);
+        setStatus(null);
+        setOutput([{ type: 'info', message: 'Preparing submission...' }]);
+
         try {
-            // Very basic safety wrapper - in prod use a sandbox/worker
-            // Extract the function body or create a wrapper
-
-            // We need to identify the function name to call it
-            const functionNameMatch = userCode.match(/function\s+(\w+)/);
-            if (!functionNameMatch) throw new Error("Could not find function name. Please define a function.");
-            const functionName = functionNameMatch[1];
-
+            const result = await executeCode(code, language);
             const results = [];
-            let allPassed = true;
+            const { stdout, stderr, time, memory } = result;
 
-            const cases = problem.testCases || [];
-
-            // Eval the user code to define the function
-            // NOTE: deeply unsafe in real app, but ok for client-side practice with no backend
-            const userFunc = new Function(`${userCode}; return ${functionName};`)();
-
-            cases.forEach((testCase, idx) => {
-                let result;
-                try {
-                    // Deep copy params to avoid mutation issues between runs
-                    const params = JSON.parse(JSON.stringify(testCase.params));
-                    result = userFunc(...params);
-                } catch (err) {
-                    result = `Error: ${err.message}`;
-                    allPassed = false;
-                }
-
-                const expected = JSON.stringify(testCase.expected);
-                const actual = JSON.stringify(result);
-                const passed = expected === actual;
-
-                if (!passed) allPassed = false;
-
+            if (stdout) {
                 results.push({
-                    type: passed ? 'success' : 'error',
-                    message: `Case ${idx + 1}: ${passed ? 'Passed' : 'Failed'}`,
-                    details: passed ? `Output: ${actual}` : `Expected: ${expected}, Got: ${actual}`
+                    type: 'success',
+                    message: 'Execution Successful',
+                    details: stdout
                 });
-            });
-
-            if (cases.length === 0) {
-                results.push({ type: 'success', message: 'Code executed successfully. (No test cases defined)' });
-            } else if (allPassed) {
-                results.unshift({ type: 'success', message: '🎉 All Test Cases Passed!' });
                 setStatus('passed');
+            } else if (stderr) {
+                results.push({
+                    type: 'error',
+                    message: 'Execution Failed',
+                    details: stderr
+                });
+                setStatus('failed');
             } else {
+                results.push({
+                    type: 'error',
+                    message: 'No Output',
+                    details: 'Program executed but produced no output.'
+                });
                 setStatus('failed');
             }
 
+            if (time !== undefined && memory !== undefined) {
+                results.push({
+                    type: 'info',
+                    message: 'Execution Stats',
+                    details: `Time: ${time || '< 0.01'}s | Memory: ${memory || 0}KB`
+                });
+            }
             setOutput(results);
-
         } catch (err) {
-            setOutput([{ type: 'error', message: `Syntax/Runtime Error: ${err.message}` }]);
+            setOutput([{
+                type: 'error',
+                message: 'Error connecting to JDoodle server',
+                details: err.message.includes('VITE_JDOODLE_CLIENT_ID')
+                    ? 'JDoodle Credentials (ID/Secret) are missing in .env.local'
+                    : err.message
+            }]);
             setStatus('failed');
+        } finally {
+            setIsRunning(false);
         }
     };
 
-    const handleRun = () => {
-        setIsRunning(true);
-        setStatus(null);
-        setOutput([{ type: 'info', message: 'Executing...' }]);
-
-        setTimeout(() => {
-            if (language === 'javascript') {
-                executeJavaScript(code);
-            } else {
-                // Mock execution for other languages
-                const isCorrect = Math.random() > 0.3; // Random success for demo
-                const results = [
-                    { type: 'info', message: `Compiling ${language}...` },
-                    isCorrect
-                        ? { type: 'success', message: 'Build Successful. Output matches expected result.' }
-                        : { type: 'error', message: 'Runtime Error: Index out of bounds' }
-                ];
-                if (isCorrect) setStatus('passed');
-                else setStatus('failed');
-                setOutput(results);
-            }
-            setIsRunning(false);
-        }, 800);
-    };
-
     return (
-        <div className="coding-practice h-[calc(100vh-73px)] border-t border-border flex flex-col md:flex-row overflow-hidden bg-[#f3f4f6]">
+        <div className="coding-practice">
             {/* Left: Problem Description */}
-            <div className="h-1/2 md:h-full md:w-[40%] bg-white border-b md:border-b-0 md:border-r border-border overflow-y-auto p-6 scroll-smooth shrink-0">
-                <Link to={`/subjects/${subjectId}/${topicId}`} className="inline-flex items-center gap-2 text-muted hover:text-primary mb-6 transition-colors text-sm">
+            <div className="problem-sidebar">
+                <Link to={`/subjects/${subjectId}/${topicId}`} className="btn btn-outline" style={{ marginBottom: '1.5rem', width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8rem' }}>
                     <ArrowLeft size={16} />
-                    <span>Back to Resources</span>
+                    Back
                 </Link>
 
-                <div className="flex items-center gap-3 mb-4">
-                    <h1 className="text-2xl font-bold">{problem.title}</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                    <h1 style={{ fontSize: '1.75rem', margin: 0 }}>{problem.title}</h1>
                     <span className={`badge badge-${problem.difficulty.toLowerCase()}`}>{problem.difficulty}</span>
                 </div>
 
-                <div className="prose prose-slate max-w-none">
-                    <p className="text-[#374151] mb-6 whitespace-pre-wrap leading-relaxed">
-                        {problem.description}
-                    </p>
+                <div className="prose">
+                    <p style={{ marginBottom: '1.5rem' }}>{problem.description}</p>
 
-                    <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-primary">
-                        <Info size={18} /> Example
+                    <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Info size={18} color="var(--primary)" /> Examples
                     </h3>
                     {problem.examples.map((ex, i) => (
-                        <div key={i} className="bg-slate-50 border border-border p-4 rounded-xl mb-6 font-mono text-sm">
-                            <div><span className="font-bold">Input:</span> {ex.input}</div>
-                            <div><span className="font-bold">Output:</span> {ex.output}</div>
-                            <div className="text-slate-500 mt-1 italic">// {ex.explanation}</div>
+                        <div key={i} className="glass-panel" style={{ padding: '1rem', borderRadius: '12px', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                            <div><span style={{ fontWeight: 800 }}>Input:</span> {ex.input}</div>
+                            <div><span style={{ fontWeight: 800 }}>Output:</span> {ex.output}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.5rem' }}>// {ex.explanation}</div>
                         </div>
                     ))}
 
-                    <h3 className="text-lg font-bold mb-3">Constraints</h3>
-                    <ul className="list-disc pl-5 space-y-2 mb-8 text-sm">
-                        {problem.constraints.map((c, idx) => <li key={idx} className="text-[#374151]">{c}</li>)}
+                    <h3 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Constraints</h3>
+                    <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                        {problem.constraints.map((c, idx) => <li key={idx} style={{ marginBottom: '0.5rem' }}>{c}</li>)}
                     </ul>
                 </div>
             </div>
 
             {/* Right: Code Editor & Console */}
-            <div className="flex-1 flex flex-col min-w-0 h-1/2 md:h-full">
-                <header className="bg-white border-b border-border p-3 flex justify-between items-center shrink-0">
-                    <div className="flex items-center gap-4">
+            <div className="editor-container">
+                <header className="editor-header">
+                    <div style={{ display: 'flex', gap: '1rem' }}>
                         {!isTheory && (
                             <select
                                 value={language}
                                 onChange={(e) => setLanguage(e.target.value)}
-                                className="bg-accent border border-border rounded-lg px-3 py-1.5 font-semibold text-sm outline-none focus:border-primary"
+                                className="language-select"
                             >
-                                {isDBMS ? (
-                                    <option value="sql">SQL</option>
-                                ) : (
+                                {isDBMS ? <option value="sql">SQL</option> : (
                                     <>
                                         <option value="javascript">JavaScript</option>
                                         <option value="python">Python</option>
@@ -245,24 +182,22 @@ function solve(input) {
                                 )}
                             </select>
                         )}
-                        {isTheory && <span className="text-sm font-bold text-muted flex items-center gap-2"><Cpu size={16} /> Case Study Practice</span>}
+                        {isTheory && <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary)' }}><Cpu size={16} /> PRACTICE MODE</span>}
                     </div>
-                    <div className="flex gap-2">
-                        <button onClick={handleRun} disabled={isRunning} className="btn btn-primary py-1.5 px-6 text-sm flex items-center gap-2 shadow-lg hover:shadow-primary/20">
-                            {isRunning ? <RotateCcw className="animate-spin" size={16} /> : <Play size={16} />}
-                            {isRunning ? 'Running...' : 'Run Code'}
-                        </button>
-                    </div>
+                    <button onClick={handleRun} disabled={isRunning} className="btn btn-primary" style={{ padding: '0.4rem 1.25rem', fontSize: '0.85rem' }}>
+                        {isRunning ? <RotateCcw className="animate-spin" size={16} /> : <Play size={16} />}
+                        {isRunning ? 'Running...' : 'Run Code'}
+                    </button>
                 </header>
 
-                <div className="flex-1 relative bg-[#1e1e1e] overflow-hidden min-h-[300px]">
+                <div className="monaco-editor-wrapper">
                     <Editor
                         height="100%"
                         language={isTheory ? 'markdown' : language}
                         theme="vs-dark"
                         value={code}
                         onChange={(val) => setCode(val)}
-                        loading={<div className="text-white p-10 font-mono">Initializing Editor Environment...</div>}
+                        loading={<div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Loading Workspace...</div>}
                         options={{
                             fontSize: 14,
                             minimap: { enabled: false },
@@ -273,20 +208,22 @@ function solve(input) {
                     />
                 </div>
 
-                <div className={`h-[35%] bg-white border-t border-border flex flex-col shrink-0 transition-all ${status === 'passed' ? 'bg-green-50/50' : status === 'failed' ? 'bg-red-50/50' : ''}`}>
-                    <div className="bg-accent px-4 py-2 border-b border-border flex items-center justify-between text-sm font-bold opacity-75">
-                        <div className="flex items-center gap-2">
-                            <Terminal size={14} /> Console Output
+                <div className={`console-container ${status}`}>
+                    <div className="console-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Terminal size={14} /> CONSOLE
                         </div>
-                        {status === 'passed' && <span className="text-green-600 flex items-center gap-1"><CheckCircle2 size={14} /> Accepted</span>}
-                        {status === 'failed' && <span className="text-red-600 flex items-center gap-1"><XCircle size={14} /> Wrong Answer</span>}
+                        {status === 'passed' && <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><CheckCircle2 size={14} /> EXECUTED</span>}
+                        {status === 'failed' && <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><XCircle size={14} /> FAILED</span>}
                     </div>
-                    <div className="flex-1 p-4 overflow-y-auto font-mono text-sm bg-[#1e1e1e] text-slate-300">
-                        {output.length === 0 && <span className="text-slate-600 italic">Run your code to see output...</span>}
+                    <div className="console-body">
+                        {output.length === 0 && <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Output will appear here...</span>}
                         {output.map((line, idx) => (
-                            <div key={idx} className={`mb-2 ${line.type === 'success' ? 'text-green-400' : line.type === 'error' ? 'text-red-400' : 'text-blue-300'}`}>
-                                <div className="font-bold">{line.message}</div>
-                                {line.details && <div className="text-slate-500 pl-4 text-xs mt-1">{line.details}</div>}
+                            <div key={idx} className="console-line">
+                                <div className="console-message" style={{ color: line.type === 'success' ? '#10b981' : line.type === 'error' ? '#ef4444' : 'var(--secondary)' }}>
+                                    {line.message}
+                                </div>
+                                {line.details && <pre className="console-details">{line.details}</pre>}
                             </div>
                         ))}
                     </div>

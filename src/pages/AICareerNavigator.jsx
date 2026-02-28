@@ -15,58 +15,12 @@ const AICareerNavigator = () => {
         { id: 'devops', name: 'DevOps Engineer', icon: '⚙️' },
     ];
 
-    const mockRoadmaps = {
-        sde: {
-            roadmap: [
-                'Learn a Programming Language (Java/C++/Python)',
-                'Data Structures & Algorithms (Arrays, Trees, Graphs, DP)',
-                'Object-Oriented Design & System Design',
-                'Database Management (SQL/NoSQL)',
-                'Web Development Basics (HTML/CSS/JS)',
-                'Version Control (Git/GitHub)'
-            ],
-            missingSkills: ['System Design', 'Advanced Graph Algorithms', 'Docker Basics']
-        },
-        ds: {
-            roadmap: [
-                'Python/R Programming',
-                'Statistics & Probability',
-                'Data Manipulation (Pandas, NumPy)',
-                'Data Visualization (Matplotlib, Seaborn)',
-                'Machine Learning Basics (Scikit-learn)',
-                'SQL for Data Science'
-            ],
-            missingSkills: ['Deep Learning Concepts', 'Big Data Tools (Spark)', 'A/B Testing']
-        },
-        aiml: {
-            roadmap: [
-                'Advanced Python',
-                'Calculus & Linear Algebra',
-                'Deep Learning Frameworks (TensorFlow/PyTorch)',
-                'Natural Language Processing (NLP)',
-                'Computer Vision',
-                'Model Deployment (MLOps)'
-            ],
-            missingSkills: ['Transformers', 'Reinforcement Learning', 'Cloud ML Services']
-        },
-        devops: {
-            roadmap: [
-                'Linux & Shell Scripting',
-                'Cloud Platforms (AWS/Azure/GCP)',
-                'CI/CD Pipelines (Jenkins/GitHub Actions)',
-                'Containerization (Docker/Kubernetes)',
-                'Infrastructure as Code (Terraform)',
-                'Monitoring & Logging (Prometheus/Grafana)'
-            ],
-            missingSkills: ['Kubernetes Advanced', 'Serverless Architecture', 'Network Security']
-        }
-    };
 
     const handleFileChange = (e) => {
         setResumeFile(e.target.files[0]);
     };
 
-    const handleGenerate = () => {
+    const handleGenerate = async () => {
         if (!selectedRole) {
             alert('Please select a target role based on your interest.');
             return;
@@ -77,15 +31,31 @@ const AICareerNavigator = () => {
         }
 
         setLoading(true);
-        // Simulate AI analysis delay
-        setTimeout(() => {
-            const result = mockRoadmaps[selectedRole];
-            setAnalysisResult({
-                role: roles.find(r => r.id === selectedRole).name,
-                ...result
+        setAnalysisResult(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('resume', resumeFile);
+            formData.append('role', roles.find(r => r.id === selectedRole).name);
+
+            const response = await fetch('http://localhost:5000/api/career/roadmap', {
+                method: 'POST',
+                body: formData,
             });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.details || errorData.error || 'Failed to generate roadmap.');
+            }
+
+            const result = await response.json();
+            setAnalysisResult(result);
+        } catch (error) {
+            console.error('Error generating roadmap:', error);
+            alert('Error: ' + error.message);
+        } finally {
             setLoading(false);
-        }, 2000);
+        }
     };
 
     return (

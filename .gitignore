@@ -1,5 +1,15 @@
 node_modules
 dist
 dist-ssr
-*.local
-.DS_Store
+.env
+.env.local
+.env.*
+server/.env
+**/.env*
+server/node_modules
+server/verify-key.js
+server/verify-status.txt
+server/final-models.log
+server/models.txt
+server/verify-2.0.txt
+server/verify-latest.txt
