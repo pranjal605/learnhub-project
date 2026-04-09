@@ -38,7 +38,7 @@ const AICareerNavigator = () => {
             formData.append('resume', resumeFile);
             formData.append('role', roles.find(r => r.id === selectedRole).name);
 
-            const response = await fetch('http://localhost:5000/api/career/roadmap', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/career/roadmap`, {
                 method: 'POST',
                 body: formData,
             });

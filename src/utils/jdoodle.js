@@ -30,7 +30,7 @@ export const executeCode = async (sourceCode, language, stdin = '') => {
 
     // Call our local backend instead of JDoodle directly
     // This avoids CORS issues and keeps the Client Secret safe
-    const url = 'http://localhost:5000/api/execute';
+    const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/execute`;
 
     const body = {
         script: sourceCode,
