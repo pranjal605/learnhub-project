@@ -1,25 +1,26 @@
 {
-  "name": "learnhub",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@monaco-editor/react": "^4.7.0",
-    "lucide-react": "^0.303.0",
-    "pdfjs-dist": "^5.4.530",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.21.1"
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.0.8"
-  }
+    "name": "learnhub",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+          "dev": "vite",
+          "build": "vite build",
+          "preview": "vite preview",
+          "start": "node server/index.js"
+    },
+    "dependencies": {
+          "@monaco-editor/react": "^4.7.0",
+          "lucide-react": "^0.303.0",
+          "pdfjs-dist": "^5.4.530",
+          "react": "^18.2.0",
+          "react-dom": "^18.2.0",
+          "react-router-dom": "^6.21.1"
+    },
+    "devDependencies": {
+          "@types/react": "^18.2.43",
+          "@types/react-dom": "^18.2.17",
+          "@vitejs/plugin-react": "^4.2.1",
+          "vite": "^5.0.8"
+    }
 }
