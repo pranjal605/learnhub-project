@@ -20,7 +20,9 @@ app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (e.g. curl, Postman)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
+        
+        const isLocalhost = origin.startsWith('http://localhost:');
+        if (allowedOrigins.includes(origin) || isLocalhost) {
             return callback(null, true);
         }
         callback(new Error(`CORS policy: Origin ${origin} not allowed`));
