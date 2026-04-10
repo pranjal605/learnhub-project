@@ -38,7 +38,7 @@ const AICareerNavigator = () => {
             formData.append('resume', resumeFile);
             formData.append('role', roles.find(r => r.id === selectedRole).name);
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/career/roadmap`, {
+            const response = awaitlocalhost:5000    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://learnhub-backend-production-6be3.up.railway.app'}`, {}
                 method: 'POST',
                 body: formData,
             });
