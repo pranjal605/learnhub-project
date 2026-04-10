@@ -41,7 +41,7 @@ const AICareerNavigator = () => {
            const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://learnhub-backend-production-6be3.up.railway.app'}`, {
                 method: 'POST',
                 body: formData,
-            });
+            })/api/career/roadmap;
 
             if (!response.ok) {
                 const errorData = await response.json();
